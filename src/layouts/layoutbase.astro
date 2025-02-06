@@ -1,0 +1,26 @@
+---
+interface Props {
+	title: string;
+	description: string;
+}
+
+const { title, description } = Astro.props;
+
+// import 'css.normalizer/normalize.css';
+// import './tailwind.css';
+import './src/styles/global.css'
+---
+
+<html lang='en'>
+	<head>
+		<meta charset='utf-8' />
+		<link rel='icon' type='image/svg+xml' href='/favicon.svg' />
+		<meta name='viewport' content='width=device-width' />
+		<meta name='description' content={description} />
+		<script type="module" src="/src/main.js"></script>
+		<title>{title}</title>
+	</head>
+	<body>
+		<slot />
+	</body>
+</html>

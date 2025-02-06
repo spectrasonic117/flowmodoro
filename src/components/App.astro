@@ -1,0 +1,194 @@
+---
+
+---
+
+<main class="bg-gray-900 text-gray-200 font-sans p-5 min-h-screen flex fel-col items-center justify-center">
+
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mx-auto p-5 w-full md:w-[1200px]">
+
+    <!-- Temporizador: en móvil aparece primero -->
+    <section id="timer-section" class="bg-gray-800 p-5 rounded-lg flex flex-col items-center justify-center min-h-[400px]">
+        <h2 class="text-xl font-semibold mb-3">Temporizador</h2>
+        <div id="timer-display" class="text-5xl mb-5">00:00:00</div>
+        <div class="flex flex-wrap justify-center">
+            <button id="pause-resume-btn" class="bg-red-500 text-white py-2 px-4 rounded transition-colors hover:bg-red-600 m-1">
+                Iniciar
+            </button>
+            <button id="reset-btn" class="bg-red-500 text-white py-2 px-4 rounded transition-colors hover:bg-red-600 m-1">
+                Descanso
+            </button>
+        </div>
+    </section>
+
+
+    <!-- Tareas: en móvil aparece debajo -->
+    <section id="task-section" class="bg-gray-800 p-5 rounded-lg flex flex-col min-h-[400px]">
+        <h2 class="text-xl font-semibold mb-3">Tareas</h2>
+        <div class="flex flex-col sm:flex-row">
+            <input
+                    type="text"
+                    id="task-input"
+                    placeholder="Añadir nueva tarea..."
+                    class="bg-gray-100 text-gray-950 flex-grow p-2 rounded border border-gray-600 focus:outline-none focus:ring focus:border-blue-300 mb-3 sm:mb-0"
+            />
+            <button
+                    id="add-task-btn"
+                    class="bg-red-500 text-white py-2 px-4 rounded transition-colors hover:bg-red-600 sm:ml-2"
+            >
+                Agregar
+            </button>
+        </div>
+        <ul id="task-list" class="list-none mt-5 max-h-[300px] overflow-y-auto"></ul>
+    </section>
+
+
+</div>
+</main>
+
+
+<script is:inline>
+    /* ---------------------------
+       Gestión de Tareas
+    --------------------------- */
+    let tasks = [];
+    const taskInput = document.getElementById('task-input');
+    const addTaskBtn = document.getElementById('add-task-btn');
+    const taskList = document.getElementById('task-list');
+
+    addTaskBtn.addEventListener('click', addTask);
+    taskInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') addTask();
+    });
+
+    function addTask() {
+        const taskText = taskInput.value.trim();
+        if (taskText === '') return;
+        const task = { id: Date.now(), text: taskText };
+        tasks.push(task);
+        taskInput.value = '';
+        renderTasks();
+    }
+
+    function renderTasks() {
+        taskList.innerHTML = '';
+        tasks.forEach(task => {
+            const li = document.createElement('li');
+            li.className = 'p-2 bg-gray-700 mb-2 rounded flex justify-between items-center';
+            const span = document.createElement('span');
+            span.textContent = task.text;
+            li.appendChild(span);
+
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'flex space-x-2';
+
+            // Botón de editar
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Editar';
+            editBtn.className = 'bg-green-500 text-white py-1 px-2 rounded';
+            editBtn.addEventListener('click', () => editTask(task.id));
+            actionsDiv.appendChild(editBtn);
+
+            // Botón de borrar
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Borrar';
+            deleteBtn.className = 'bg-red-500 text-white py-1 px-2 rounded';
+            deleteBtn.addEventListener('click', () => deleteTask(task.id));
+            actionsDiv.appendChild(deleteBtn);
+
+            li.appendChild(actionsDiv);
+            taskList.appendChild(li);
+        });
+    }
+
+    function editTask(id) {
+        const newText = prompt('Editar tarea:');
+        if (newText === null) return;
+        tasks = tasks.map(task => task.id === id ? { ...task, text: newText } : task);
+        renderTasks();
+    }
+
+    function deleteTask(id) {
+        tasks = tasks.filter(task => task.id !== id);
+        renderTasks();
+    }
+
+    /* ---------------------------
+       Lógica del Temporizador y Descanso
+    --------------------------- */
+    let timerInterval = null;
+    let breakInterval = null;
+    let startTime = null;
+    let elapsedTime = 0;
+    const timerDisplay = document.getElementById('timer-display');
+    const pauseResumeBtn = document.getElementById('pause-resume-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    let isRunning = false;
+
+    function updateTimerDisplay() {
+        const totalTime = elapsedTime + (isRunning ? Date.now() - startTime : 0);
+        const seconds = Math.floor(totalTime / 1000) % 60;
+        const minutes = Math.floor(totalTime / (1000 * 60)) % 60;
+        const hours = Math.floor(totalTime / (1000 * 60 * 60));
+        timerDisplay.textContent =
+            (hours < 10 ? '0' + hours : hours) + ':' +
+            (minutes < 10 ? '0' + minutes : minutes) + ':' +
+            (seconds < 10 ? '0' + seconds : seconds);
+    }
+
+    function startTimer() {
+        if (!isRunning) {
+            isRunning = true;
+            startTime = Date.now();
+            pauseResumeBtn.textContent = 'Pausar';
+            timerInterval = setInterval(updateTimerDisplay, 1000);
+        }
+    }
+
+    function pauseTimer() {
+        if (isRunning) {
+            isRunning = false;
+            elapsedTime += Date.now() - startTime;
+            clearInterval(timerInterval);
+            pauseResumeBtn.textContent = 'Reanudar';
+        }
+    }
+
+    pauseResumeBtn.addEventListener('click', function() {
+        if (breakInterval) return;
+        if (!isRunning && elapsedTime === 0) {
+            startTimer();
+        } else if (isRunning) {
+            pauseTimer();
+        } else if (!isRunning && elapsedTime > 0) {
+            startTimer();
+        }
+    });
+
+    resetBtn.addEventListener('click', function() {
+        if (isRunning) pauseTimer();
+        if (breakInterval) return;
+        const workTime = elapsedTime;
+        const breakTime = Math.floor(workTime * 0.1);
+        if (breakTime <= 0) return;
+        let breakRemaining = breakTime;
+        breakInterval = setInterval(function() {
+            breakRemaining -= 1000;
+            if (breakRemaining <= 0) {
+                clearInterval(breakInterval);
+                breakInterval = null;
+                timerDisplay.textContent = '00:00:00';
+                elapsedTime = 0;
+                pauseResumeBtn.textContent = 'Iniciar';
+            } else {
+                const seconds = Math.floor(breakRemaining / 1000) % 60;
+                const minutes = Math.floor(breakRemaining / (1000 * 60)) % 60;
+                const hours = Math.floor(breakRemaining / (1000 * 60 * 60));
+                timerDisplay.textContent =
+                    (hours < 10 ? '0' + hours : hours) + ':' +
+                    (minutes < 10 ? '0' + minutes : minutes) + ':' +
+                    (seconds < 10 ? '0' + seconds : seconds);
+            }
+        }, 1000);
+    });
+</script>
